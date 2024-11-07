@@ -3,7 +3,7 @@ import MapView, { Marker } from 'react-native-maps';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, Animated, Keyboard, FlatList } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, Animated, Keyboard, FlatList, Platform } from 'react-native';
 import * as Location from 'expo-location';
 import { FontAwesome } from '@expo/vector-icons';
 // import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -23,7 +23,7 @@ export default function HomePage() {
   const overlayAnimationSearch = useRef(new Animated.Value(500)).current;
   const searchInputRef = useRef<TextInput>(null);
   const [keyboardVisible, setKeyboardVisible] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState<any>('');
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(false);
   let isMoving = false;
@@ -61,8 +61,11 @@ export default function HomePage() {
   useEffect(() => {
   const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow',()=>{
     setKeyboardVisible(true)
+    console.log(Platform.OS);
+    
     Animated.timing(overlayAnimationSearch, {
-      toValue: 500/2,
+      toValue: Platform.OS === "ios" ? 0 :500/2,
+      // toValue: 500/2,
       duration: 300,
       useNativeDriver: true,
     }).start();
@@ -88,25 +91,30 @@ export default function HomePage() {
   }, [])
   const fetchPlaces = async () => {
     if (searchQuery.trim() === '') return; // Don't fetch if search query is empty
-
-    setLoading(true);
-    const location = 'Casablanca'; // Example location, replace as needed
-    const url = `https://api.gomaps.pro/v1/search?query=${searchQuery}&location=${location}&key=${apiKey}`;
-
-    try {
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (data.results) {
-        setPlaces(data.results);
-      } else {
-        setPlaces([]);
+    
+    console.log('working');
+    console.log(searchQuery)
+    const options = {
+      method: 'GET',
+      headers: {
+        accept: 'application/json',
+        Authorization: 'AlzaSyPPA95gwmMY5VRCMNPiZ3qsmRWtF7SkM4s'
       }
-    } catch (error) {
-      console.error('Error fetching places:', error);
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    fetch(`https://api.gomaps.pro/v3/places/search?query=${searchQuery}&ll=${location.coords.latitude}%2C${location.coords.longitude}&radius=100000`, options)
+
+
+      .then(res => res.json())
+      .then(res => {
+        setPlaces(res.results)
+        console.log('====================================');
+        console.log(res.results);
+        console.log('====================================');
+      })
+      .catch(err => console.error(err));
+    
+    
   };
 
   useEffect(() => {
